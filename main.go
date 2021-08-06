@@ -69,6 +69,7 @@ func setupSetting() error  {
 	return nil
 }
 
+//启动日志
 func setupLogger() error  {
 	fileName := global.AppSetting.LogSavePath + "/" +
 		global.AppSetting.LogFileName + global.AppSetting.LogFileExt
