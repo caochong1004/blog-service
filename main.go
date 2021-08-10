@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"flag"
 	"github.com/longjoy/blog-service/global"
 	"github.com/longjoy/blog-service/internal/model"
 	"github.com/longjoy/blog-service/internal/routers"
@@ -9,7 +11,17 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 	"time"
+)
+
+var (
+	port string
+	runMode string
+	config string
 )
 
 func init()  {
@@ -20,6 +32,11 @@ func init()  {
 	err = setupDBEngine()
 	if err != nil{
 		log.Fatalf("init.setupDBEngine err %v", err)
+	}
+
+	err  = setupFlag()
+	if err != nil {
+		log.Fatalf("init.setupFlag err %v", err)
 	}
 }
 
@@ -36,12 +53,31 @@ func main()  {
 		WriteTimeout: global.ServerSetting.WriteTimeout,
 		MaxHeaderBytes: 1<<20,
 	}
-
-	s.ListenAndServe()
+	//信号控制程序优雅的重启
+	go func() {
+		err := s.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatalf("s.ListenAndServer err: %v", err)
+		}
+	}()
+	//等待中断信号
+	quit := make(chan os.Signal)
+	//接受syscall.SIGINT 和 syscall.sigterm
+	signal.Notify(quit,syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("shuting down server...")
+	//最大时间控制，用于通知该服务端他有5秒的时间来处理原有的请求
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.Shutdown(ctx); err != nil {
+		log.Fatal("server forced to shutdown:", err)
+	}
+	log.Println("server exiting")
+	
 }
 
 func setupSetting() error  {
-	setting, err := setting.NewSetting()
+	setting, err := setting.NewSetting(strings.Split(config,",")...)
 	if err != nil {
 		return err
 	}
@@ -72,6 +108,12 @@ func setupSetting() error  {
 	global.JWTSetting.Expire *= time.Second
 	global.ServerSetting.ReadTimeout *= time.Second
 	global.ServerSetting.WriteTimeout *= time.Second
+	if port != "" {
+		global.ServerSetting.HttpPort = port
+	}
+	if runMode != "" {
+		global.ServerSetting.RunMode = runMode
+	}
 	return nil
 }
 
@@ -94,6 +136,14 @@ func setupDBEngine() error  {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func setupFlag() error  {
+	flag.StringVar(&port, "port", "", "启动端口")
+	flag.StringVar(&runMode,"mode","", "启动模式")
+	flag.StringVar(&config, "config", "configs/", "指定要使用的配置文件路径")
+	flag.Parse()
 	return nil
 }
 
