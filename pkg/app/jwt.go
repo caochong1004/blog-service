@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/Azure/azure-sdk-for-go/profiles/preview/preview/datashare/mgmt/datashare"
+	//"github.com/Azure/azure-sdk-for-go/profiles/preview/preview/datashare/mgmt/datashare"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/longjoy/blog-service/global"
 	"github.com/longjoy/blog-service/pkg/util"
