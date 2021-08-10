@@ -3,6 +3,7 @@ Server:
   HttpPort: 8000
   ReadTimeout: 60
   WriteTimeout: 60
+  RequestTimeout: 60
 App:
   DefaultPageSize: 10
   MaxPageSize: 100
@@ -31,3 +32,12 @@ JWT:
   Secret: eddycjy
   Issuer: blog-service
   Expire: 7200
+Email:
+   Host: smtp.qq.com
+   Port: 465
+   UserName: 838730131@qq.com
+   Password: caochong123
+   IsSSL: true
+   From: 838730131@qq.com
+   To:
+     - 18625592562@163.com

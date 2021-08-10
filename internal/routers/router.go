@@ -2,18 +2,37 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/longjoy/blog-service/global"
 	"github.com/longjoy/blog-service/internal/middleware"
 	"github.com/longjoy/blog-service/internal/routers/api"
 	"github.com/longjoy/blog-service/internal/routers/api/v1"
 	_ "github.com/longjoy/blog-service/docs"
+	"github.com/longjoy/blog-service/pkg/limiter"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"time"
 )
 
+var methodLimters = limiter.NewMethodLimiter().AddBuckets(
+	limiter.LimiterBucketRule{
+		Key: "/auth",
+		FillInterval: time.Second,
+		Capacity: 10,
+		Quantum: 10,
+	})
 func NewRouter() *gin.Engine  {
 	r := gin.New()
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
+	if global.ServerSetting.RunMode == "debug" {
+		r.Use(gin.Logger())
+		r.Use(gin.Recovery())
+	}else{
+		r.Use(middleware.AccessLog())
+		r.Use(middleware.Recovery())
+	}
+	r.Use(middleware.RateLimiter(methodLimters))
+	//获得请求超时时间配置
+
+	r.Use(middleware.ContextTimeout(global.ServerSetting.RequestTimeout))
 	r.Use(middleware.Translations())
 	r.GET("/auth",api.GetAuth)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
