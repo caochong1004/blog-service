@@ -73,7 +73,7 @@ func main()  {
 		log.Fatal("server forced to shutdown:", err)
 	}
 	log.Println("server exiting")
-	
+
 }
 
 func setupSetting() error  {
